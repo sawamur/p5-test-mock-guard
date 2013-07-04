@@ -18,7 +18,7 @@ package main;
     $obj->foo('bar','baz');
     $obj->foo();
     $obj->foo(1,3);
-    is_deeply $guard->args('Some::Class', 'foo'),[['bar','baz'],[],[1,3]];
+    is_deeply $guard->args('Some::Class', 'foo') => [['bar','baz'],[],[1,3]];
 }
 
 
@@ -31,6 +31,16 @@ package main;
     $obj->foo(3,4);
     $obj->foo();
     is_deeply $guard->args($obj, 'foo') => [['a','b'],[3,4],[]];
+}
+
+
+{
+    # not mocked object
+    my $obj = Some::Class->new;
+    my $guard = mock_guard('Some::Class' => { foo => sub {}});
+    $obj->foo('a','b');
+
+    is $guard->args($obj, 'foo'),undef;
 }
 
 
