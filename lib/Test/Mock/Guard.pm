@@ -54,7 +54,11 @@ sub new {
             no strict 'refs';
             no warnings 'redefine';
 
+            $stash->{$class_name}->{$method_name}->{args} ||= [];
+
             *{$fully_qualified_method_name} = set_prototype(sub {
+                my @arg = @_;
+                push @{$stash->{$class_name}->{$method_name}->{args}},[splice @arg,1];
                 ++$stash->{$class_name}->{$method_name}->{called_count};
                 &$mocked_method;
             }, $prototype);
@@ -78,6 +82,22 @@ sub call_count {
         my $class_name = $klass;
         return unless exists $stash->{$class_name}->{$method_name};
         return $stash->{$class_name}->{$method_name}->{called_count};
+    }
+}
+
+sub args {
+    my ($self, $klass, $method_name) = @_;
+    if (my $class_name = blessed $klass) {
+        # object
+        my $refaddr = refaddr $klass;
+        my $guard = $self->{object}->{"$class_name#$refaddr"}
+            || return undef; ## no critic
+        return $guard->args($method_name);
+    } else {
+        # class
+        my $class_name = $klass;
+        return unless exists $stash->{$class_name}->{$method_name};
+        return $stash->{$class_name}->{$method_name}->{args};
     }
 }
 
@@ -169,6 +189,7 @@ sub new {
         $methods_map->{$method} = {
             method       => $methods->{$method},
             called_count => 0,
+            args         => []
         };
         unless ($mocked->{$klass}->{_mocked}->{$method}) {
             $mocked->{$klass}->{_mocked}->{$method} = $klass->can($method);
@@ -201,12 +222,21 @@ sub call_count {
     return $mocked->{$klass}{$refaddr}{$method_name}{called_count};
 }
 
+sub args {
+    my ($self, $method_name) = @_;
+    my $klass   = blessed $self->{object};
+    my $refaddr = refaddr $self->{object};
+    return unless exists $mocked->{$klass}{$refaddr}{$method_name}{args};
+    return $mocked->{$klass}{$refaddr}{$method_name}{args};
+}
+
 sub _mocked {
     my ($method, $object, @rest) = @_;
     my $klass   = blessed($object);
     my $refaddr = refaddr($object);
     if (exists $mocked->{$klass}->{$refaddr} && exists $mocked->{$klass}->{$refaddr}->{$method}) {
         ++$mocked->{$klass}->{$refaddr}->{$method}->{called_count};
+        push @{$mocked->{$klass}->{$refaddr}->{$method}->{args}},[@rest];
         my $val = $mocked->{$klass}->{$refaddr}->{$method}->{method};
         ref($val) eq 'CODE' ? $val->($object, @rest) : $val;
     } else {

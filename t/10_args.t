@@ -21,15 +21,18 @@ package main;
     is_deeply $guard->args('Some::Class', 'foo'),[['bar','baz'],[],[1,3]];
 }
 
+
 {
     # object
     my $obj = Some::Class->new;
     my $guard = mock_guard($obj => { foo => sub {}});
-    is_deeply $guard->args($obj, 'foo'),[['a','b'],[3,4]];
+    is_deeply $guard->args($obj, 'foo') => [];
     $obj->foo('a','b');
     $obj->foo(3,4);
     $obj->foo();
-    is_deeply $guard->args($obj, 'foo'),[['a','b'],[3,4],[]];
+    is_deeply $guard->args($obj, 'foo') => [['a','b'],[3,4],[]];
 }
+
+
 
 done_testing;
