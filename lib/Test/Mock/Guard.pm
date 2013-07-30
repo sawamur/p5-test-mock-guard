@@ -357,6 +357,18 @@ See L</mock_guard> definition.
 
 Returns a number of calling of $method_name in $class_name_or_object.
 
+=head2 args( $class_name_or_object , $method_name )
+
+Retruns arguments which are called with the method.
+
+  my $guard = mock_guard('Some::Class' => { foo => sub {} });
+  my $obj = Some::Class->new;
+  $obj->foo('bar','baz');
+  $obj->foo();
+  $obj->foo(1,3);
+  is_deeply $guard->args('Some::Class', 'foo') => [['bar','baz'],[],[1,3]];
+
+
 =head1 AUTHOR
 
 Toru Yamaguchi E<lt>zigorou@cpan.orgE<gt>
